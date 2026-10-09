@@ -32,7 +32,21 @@ class HouseholdProfile(BaseModel):
         description="Whether solar panels are installed on the property"
     )
 
+    @property
+    def safe_location(self) -> str:
+        """Returns non-PII location string (suburb, state, postcode) for notifications/logs."""
+        parts = [p for p in [self.suburb, self.state, self.postcode] if p]
+        if parts:
+            return ", ".join(parts) if len(parts) > 1 and self.suburb else " ".join(parts)
+        if self.address:
+            # Fall back to trying to extract suburb/state from trailing comma separated component
+            address_parts = [p.strip() for p in self.address.split(",") if p.strip()]
+            if len(address_parts) > 1:
+                return address_parts[-1]
+        return "Configured Property"
+
     @classmethod
+
     def from_env(cls) -> "HouseholdProfile":
         """Factory method to load HouseholdProfile from environment variables."""
         raw_address = (

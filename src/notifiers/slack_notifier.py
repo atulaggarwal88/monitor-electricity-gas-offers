@@ -55,7 +55,7 @@ def send_slack_message(webhook_url: str, payload: dict) -> bool:
             data=json.dumps(payload).encode('utf-8'),
             headers={'Content-Type': 'application/json'}
         )
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:
             pass
         return True
     except Exception as e:
@@ -86,7 +86,7 @@ def send_slack_top_deal(
     badge = "🥇 TOP #1 DEAL" if rank == 1 else ("🥈 TOP #2 DEAL" if rank == 2 else f"🥉 TOP #{rank} DEAL")
     header_icon = "⚡" if utility.lower() == "electricity" else "🔥"
 
-    address_display = household.address if household and household.address else "Configured Property"
+    address_display = household.safe_location if household else "Configured Property"
     solar_display = "Solar" if (household and household.has_solar) else "No Solar"
     usage_display = f"{household.electricity_usage} Elec / {household.gas_usage} Gas" if household else "Standard Usage"
 
@@ -152,7 +152,7 @@ def send_slack_top_summary(
         deal_summary_lines.append(f"*{rank}. {deal.provider} ({deal.utility})* — {deal.plan_name} | Est. Savings: *~${savings:.2f}/yr*")
 
     deals_text = "\n".join(deal_summary_lines) if deal_summary_lines else "No better deals found than current baseline."
-    address_display = household.address if household and household.address else "Configured Property"
+    address_display = household.safe_location if household else "Configured Property"
 
     summary_text = (
         f"🏆 *Top {len(top_deals)} Energy Deals for {address_display}* (`#{channel}`)\n\n"
