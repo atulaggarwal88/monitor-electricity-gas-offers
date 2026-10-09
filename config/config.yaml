@@ -1,0 +1,26 @@
+# Configuration for Agno Firecrawl Energy Monitor Agent
+
+model_id: "gemini-3.5-flash"
+
+usage_csv_path: "build/output/consolidated_usage.csv"
+
+# Targets to scrape for energy deals
+# Supports any comparison site (e.g., Finder.com.au, iSelect.com.au, etc.)
+targets:
+  - name: "Finder"
+    url: "https://www.finder.com.au/energy"
+    prompt: "Search and scrape electricity and gas plan comparison deals on {url} for address: {address}. Household profile: Electricity usage = {electricity_usage}, Gas usage = {gas_usage}, Solar panel = {has_solar}. Extract all available plan offers including provider name, plan name, utility type, estimated annual and monthly costs, reference price difference, usage rates, daily supply rates, solar feed-in tariff, signup link, and key promotional features."
+  # Future targets can simply be added here:
+  # - name: "iSelect"
+  #   url: "https://www.iselect.com.au/energy/"
+  #   prompt: "Search and scrape energy plans on {url} for address {address} (Electricity: {electricity_usage}, Gas: {gas_usage}, Solar: {has_solar})."
+
+# Default single target fallback
+website_url: "https://www.finder.com.au/energy"
+prompt: "Search and scrape electricity and gas plan comparison deals on {url} for address: {address}. Household profile: Electricity usage = {electricity_usage}, Gas usage = {gas_usage}, Solar panel = {has_solar}. Extract all available plan offers including provider name, plan name, utility type, estimated annual and monthly costs, reference price difference, usage rates, daily supply rates, solar feed-in tariff, signup link, and key promotional features."
+
+slack:
+  enabled: true
+  channel: "electricity-gas-deals"
+  output_seen_file: "build/seen_energy_deals.json"
+  top_n_deals: 3
