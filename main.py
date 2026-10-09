@@ -92,21 +92,27 @@ def main():
 
     seen_deals = load_seen_deals()
 
-    # 5. Notify Slack with Top Deals
+    # 5. Notify Slack with Top Deals (filtering out previously alerted deals)
+    new_deals_notified = 0
     for rank, (deal, reason, savings) in enumerate(top_deals, start=1):
         deal_key = f"{deal.provider}:{deal.plan_name}:{deal.utility}".lower().replace(" ", "_")
         logger.info("Top Deal Selected", rank=rank, provider=deal.provider, plan=deal.plan_name, savings=savings, reason=reason)
 
+        if deal_key in seen_deals:
+            logger.info("Skipping deal already notified in previous run", deal_key=deal_key, rank=rank)
+            continue
+
         if SLACK_WEBHOOK_URL:
             send_slack_top_deal(SLACK_WEBHOOK_URL, deal, rank=rank, reason=reason, savings=savings, channel=TARGET_SLACK_CHANNEL)
             seen_deals.add(deal_key)
+            new_deals_notified += 1
         else:
             logger.warning("SLACK_WEBHOOK_URL not set; skipping Slack alert", rank=rank, deal=deal.model_dump())
 
     save_seen_deals(seen_deals)
 
-    # 6. Send top deals summary banner to Slack
-    if SLACK_WEBHOOK_URL and top_deals:
+    # 6. Send top deals summary banner to Slack only when new deals are notified
+    if SLACK_WEBHOOK_URL and top_deals and new_deals_notified > 0:
         send_slack_top_summary(SLACK_WEBHOOK_URL, top_deals, baseline, channel=TARGET_SLACK_CHANNEL)
 
     print(f"\n✅ Scan complete! Scraped {len(extracted_deals)} total deal(s).")
