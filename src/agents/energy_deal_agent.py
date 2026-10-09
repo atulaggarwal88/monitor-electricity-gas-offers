@@ -93,15 +93,18 @@ def extract_energy_deals(
     def _run_agent():
         return agent.run(formatted_prompt)
 
+    executor = ThreadPoolExecutor(max_workers=1)
     try:
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_run_agent)
-            response = future.result(timeout=timeout_seconds)
+        future = executor.submit(_run_agent)
+        response = future.result(timeout=timeout_seconds)
 
         content = getattr(response, "content", None)
 
         if isinstance(content, EnergyDealList):
             deals = content.deals
+        elif isinstance(content, dict) and "deals" in content:
+            for d in content["deals"]:
+                deals.append(EnergyDealItem(**d) if isinstance(d, dict) else d)
         elif isinstance(content, str):
             cleaned_content = content.strip()
             if cleaned_content.startswith("```json"):
@@ -113,14 +116,20 @@ def extract_energy_deals(
                 if isinstance(parsed, dict) and "deals" in parsed:
                     for d in parsed["deals"]:
                         deals.append(EnergyDealItem(**d))
+                elif isinstance(parsed, list):
+                    for d in parsed:
+                        deals.append(EnergyDealItem(**d))
             except Exception:
                 logger.warning("Failed to parse agent text response into JSON", raw_content=content[:200])
 
         logger.info("Agent completed energy deal extraction", target_url=url, deals_found=len(deals))
+        executor.shutdown(wait=False)
 
     except FutureTimeoutError:
         logger.error("Agent execution timed out", target_url=url, timeout_seconds=timeout_seconds)
+        executor.shutdown(wait=False, cancel_futures=True)
     except Exception as e:
         logger.error("Error during agent execution", target_url=url, error=str(e))
+        executor.shutdown(wait=False)
 
     return deals
